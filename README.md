@@ -1,23 +1,36 @@
-# wedding-pwa
-PWA For Managing a Bootstrap Wedding Collaboratively 
-🐘 The Wedding Elephant: One Bite at a Time
-The Mission: To plan a beautiful, meaningful wedding on a "shoestring" budget by empowering our family team to tackle the big tasks in small, manageable pieces.
-🥂 Overview
-Planning a wedding can feel like trying to eat an elephant—it's overwhelming. This app is designed to gate the planning process into Phases. We don't worry about the cake (Phase 4) until we’ve secured the venue (Phase 1).
-This is a collaborative PWA (Progressive Web App) where the Bride/Admin delegates tasks, and the family "Bro Deals" help us stay under budget.
-✨ Core Features
-The Sequential Gate: Phase 2 doesn't unlock until Phase 1 is 100% complete. No distractions!
-The Bro Deal Tracker: A specialized resource list (highlighted in Sage Green) to track family favors, discounts, and DIY wins.
-The Review Loop: When a family member completes a task, it moves to the Bride's Dashboard for a final "stamp of approval."
-Real-Time Sync: No local storage. Whether you are on your phone at a venue or on a laptop at home, the data is always live.
-Pastel Dashboard: A modern, calming UI featuring a wedding countdown, budget burn-down, and live activity feed.
-🛠 The Tech Stack (The "No-Cost" Engine)
-Framework: Next.js (React)
-Database & Auth: Supabase (Real-time data)
-Deployment: Vercel
-Styling: Tailwind CSS (Wedding Chic Palette)
-👗 How to Use This App
-Setup Phase: Admin enters the Date and the Ceiling Budget.
-Assignment: The Admin assigns specific "Bite-Sized" tasks to family members.
-Completion: Users check off tasks, add notes, and submit for review.
-Review: Admin approves the task, updating the global project tracker and budget.
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+## Getting Started
+
+First, run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
