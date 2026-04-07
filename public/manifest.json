@@ -1,0 +1,17 @@
+{
+  "name": "The Wedding Elephant",
+  "short_name": "Elephant",
+  "description": "Collaborative Wedding Planner",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fff1f2",
+  "theme_color": "#fff1f2",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
