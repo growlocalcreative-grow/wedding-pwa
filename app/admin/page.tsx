@@ -49,6 +49,7 @@ export default function AdminPage() {
     setLoading(false);
   }
 
+  // --- THE UPDATED PAYLOAD LOGIC ---
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     let table = activeTab === 'tasks' ? 'tasks' : activeTab === 'resources' ? 'resources' : 'diy_projects';
@@ -60,9 +61,15 @@ export default function AdminPage() {
         else status = current?.status || 'todo';
     }
 
-    const payload: any = activeTab === 'tasks' ? { title, directions: desc, phase_id: parseInt(val1), assigned_user_id: val2 || null, estimated_cost: parseFloat(cost), status }
-                     : activeTab === 'resources' ? { name: title, notes: desc, category: val1, contact_type: 'Hired Help', price_quoted: parseFloat(cost) }
-                     : { title, materials_list: desc, estimated_cost: parseFloat(cost), assigned_user_id: val2 || null };
+    // Constructing the data to send to Supabase
+    const payload: any = activeTab === 'tasks' ? { 
+        title, directions: desc, phase_id: parseInt(val1), assigned_user_id: val2 || null, estimated_cost: parseFloat(cost), status 
+      } : activeTab === 'resources' ? { 
+        name: title, notes: desc, category: val1, contact_type: 'Hired Help', price_quoted: parseFloat(cost) 
+      } : { 
+        title, materials_list: desc, estimated_cost: parseFloat(cost), assigned_user_id: val2 || null, 
+        strategy: 'DIY' // Default strategy for new DIY items
+      };
 
     const { error } = editingId ? await supabase.from(table).update(payload).eq('id', editingId) : await supabase.from(table).insert([payload]);
 
@@ -75,7 +82,7 @@ export default function AdminPage() {
   function startEdit(item: any) {
     setEditingId(item.id);
     setTitle(item.title || item.name);
-    setDesc(item.directions || item.notes || item.materials_list);
+    setDesc(item.directions || item.notes || item.materials_list || '');
     setCost((item.estimated_cost || item.price_quoted || 0).toString());
     setVal1(item.phase_id?.toString() || item.category || '1');
     setVal2(item.assigned_user_id || '');
@@ -87,16 +94,21 @@ export default function AdminPage() {
     fetchData();
   }
 
+  async function handleDelete(id: number) {
+    if (!confirm("Are you sure? This is permanent!")) return;
+    let table = activeTab === 'tasks' ? 'tasks' : activeTab === 'resources' ? 'resources' : 'diy_projects';
+    await supabase.from(table).delete().eq('id', id);
+    fetchData();
+  }
+
   if (loading) return <div className="p-10 text-center italic text-rose-300">Loading Desk...</div>;
 
   return (
     <main className={`min-h-screen pb-32 font-sans text-slate-800 transition-colors duration-500 ${theme.bg}`}>
       
-      {/* HEADER SECTION */}
       <header className={`bg-white border-b sticky top-0 z-20 shadow-sm flex flex-col items-center p-6 transition-all duration-500 ${theme.border}`}>
-        <h1 className="text-xl font-serif italic">Bride&apos;s Desk</h1>
+        <h1 className="text-xl font-serif italic tracking-tight">Bride&apos;s Desk</h1>
         
-        {/* TAB SWITCHER */}
         <div className="flex bg-slate-100 rounded-xl p-1 mt-4 w-full max-w-xs">
           <button onClick={() => {setActiveTab('tasks'); setEditingId(null);}} className={`flex-1 py-1.5 text-[9px] font-bold uppercase rounded-lg transition-all ${activeTab === 'tasks' ? 'bg-white shadow-sm text-rose-500' : 'text-slate-400'}`}>Tasks</button>
           <button onClick={() => {setActiveTab('resources'); setEditingId(null);}} className={`flex-1 py-1.5 text-[9px] font-bold uppercase rounded-lg transition-all ${activeTab === 'resources' ? 'bg-white shadow-sm text-emerald-500' : 'text-slate-400'}`}>People</button>
@@ -106,14 +118,19 @@ export default function AdminPage() {
 
       <div className="max-w-2xl mx-auto p-4 space-y-8">
         
-        {/* ADD / EDIT FORM (Changes color based on tab) */}
+        {/* ADD / EDIT FORM */}
         <section className={`card-wedding border-2 bg-white p-6 shadow-md transition-all duration-500 ${theme.border}`}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <h2 className={`text-[10px] font-bold uppercase tracking-widest ${theme.text}`}>
               {editingId ? '✏️ Edit' : '➕ Add'} {activeTab === 'diy' ? 'Craft Project' : activeTab === 'resources' ? 'Contact' : 'Task'}
             </h2>
             <input type="text" placeholder="Title/Name" className="w-full p-3 rounded-xl border border-slate-200 text-sm outline-none focus:ring-1 focus:ring-slate-300" value={title} onChange={(e) => setTitle(e.target.value)} required />
-            <textarea placeholder="Details/Directions..." className="w-full p-3 rounded-xl border border-slate-200 text-sm h-20 outline-none" value={desc} onChange={(e) => setDesc(e.target.value)} />
+            <textarea 
+               placeholder={activeTab === 'diy' ? "Needs List (comma separated)" : "Details/Directions..."} 
+               className="w-full p-3 rounded-xl border border-slate-200 text-sm h-20 outline-none focus:ring-1 focus:ring-slate-300" 
+               value={desc} 
+               onChange={(e) => setDesc(e.target.value)} 
+            />
             
             <div className="grid grid-cols-2 gap-3">
               {activeTab === 'tasks' && (
@@ -142,26 +159,28 @@ export default function AdminPage() {
             <button type="submit" className={`w-full text-white font-bold py-3 rounded-xl text-[10px] uppercase tracking-widest shadow-md transition-colors ${theme.btn}`}>
               {editingId ? 'Save Changes' : `Confirm ${activeTab}`}
             </button>
+            {editingId && <button type="button" onClick={() => {setEditingId(null); setTitle(''); setDesc('');}} className="w-full text-[9px] text-slate-400 font-bold uppercase text-center mt-2">Cancel Edit</button>}
           </form>
         </section>
 
-        {/* LIST SECTION */}
+        {/* MANAGEMENT LIST */}
         <section className="space-y-4">
-          <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1 italic">Existing Items</h2>
+          <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1 italic tracking-tighter">Existing Items</h2>
           {items.map((item) => {
             const assignee = profiles.find(p => p.id === item.assigned_user_id);
             return (
               <div key={item.id} className="card-wedding py-4 px-5 flex justify-between items-center shadow-sm bg-white/80 backdrop-blur-sm border-l-4 border-l-slate-200">
                 <div className="flex-1 pr-4">
                   <h3 className="text-sm font-bold text-slate-700 leading-tight">{item.title || item.name}</h3>
-                  <p className="text-[9px] text-slate-400 mt-1 font-bold uppercase tracking-tighter">
+                  <p className="text-[9px] text-rose-400 mt-1 font-bold uppercase tracking-tighter">
                     {assignee ? `Assignee: ${assignee.full_name || assignee.email}` : 'Assignee: Team'}
                   </p>
-                  {item.status === 'pending_review' && <span className="text-[8px] text-sky-500 font-bold uppercase mt-1 block">⚠️ Suggestion</span>}
+                  {item.status === 'pending_review' && <span className="text-[8px] text-sky-500 font-bold uppercase mt-1 block tracking-widest">⚠️ Needs Approval</span>}
                 </div>
                 <div className="flex gap-2">
-                  {item.status === 'pending_review' && <button onClick={() => approveTask(item.id)} className="bg-emerald-500 text-white px-3 py-1 rounded-lg text-[9px] font-bold">Approve</button>}
-                  <button onClick={() => startEdit(item)} className="p-2 bg-slate-50 rounded-lg text-sm border border-slate-100 shadow-sm active:scale-90 transition-all">✏️</button>
+                  {item.status === 'pending_review' && <button onClick={() => approveTask(item.id)} className="bg-emerald-500 text-white px-3 py-1 rounded-lg text-[9px] font-bold uppercase shadow-sm">Approve</button>}
+                  <button onClick={() => startEdit(item)} className="p-2 bg-slate-100 rounded-lg text-sm border border-slate-100 active:scale-90 transition-all">✏️</button>
+                  <button onClick={() => handleDelete(item.id)} className="p-2 bg-rose-50 rounded-lg text-sm border border-rose-100 active:scale-90 transition-all text-rose-400">🗑️</button>
                 </div>
               </div>
             );
@@ -172,7 +191,7 @@ export default function AdminPage() {
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 h-16 flex items-center justify-around px-6 z-50">
         <Link href="/" className="text-slate-400 flex flex-col items-center hover:scale-105 transition-all">
           <span className="text-xl">🏠</span>
-          <span className="text-[9px] font-bold mt-1 tracking-tight">Exit</span>
+          <span className="text-[9px] font-bold mt-1 tracking-tight">Exit Admin</span>
         </Link>
       </nav>
     </main>
