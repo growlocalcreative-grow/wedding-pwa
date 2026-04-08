@@ -51,22 +51,6 @@ export default function Home() {
     router.push('/login');
   };
 
-  {/* TEAM ROSTER CARD (Admin Only) */}
-{userProfile?.role === 'admin' && (
-  <div className="card-wedding bg-white shadow-sm border-dashed border-rose-200">
-    <h3 className="text-[9px] font-bold text-rose-400 uppercase tracking-widest mb-3 flex items-center">
-      <span className="mr-2">👥</span> Team Check-in
-    </h3>
-    <div className="flex flex-wrap gap-2">
-      {/* This assumes you've fetched 'profiles' in your checkUserAndFetch function */}
-      {/* For now, just a helpful reminder for the Bride */}
-      <p className="text-[10px] text-slate-400 italic">
-        Once the MOH, Groom, and Parents sign up, their names will appear in your Admin Desk assignment list!
-      </p>
-    </div>
-  </div>
-)}
-
   // --- SAFE LOGIC CALCULATIONS ---
   const isPhaseUnlocked = (phaseStep: number) => {
     if (phaseStep === 1) return true;
@@ -81,7 +65,7 @@ export default function Home() {
   const today = new Date();
   const diffDays = weddingDate ? Math.ceil((weddingDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : 0;
   
-  const totalBudget = config?.total_budget || 1; // Avoid divide by zero
+  const totalBudget = config?.total_budget || 1; 
   const spentSoFar = tasks?.reduce((acc, t) => acc + (t.status === 'completed' ? (Number(t.estimated_cost) || 0) : 0), 0) || 0;
   const budgetPercent = Math.min(Math.round((spentSoFar / totalBudget) * 100), 100);
   const totalSaved = tasks?.filter(t => t.is_bro_deal && t.status === 'completed').length * 50 || 0;
@@ -90,33 +74,46 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-slate-50 pb-24 font-sans relative">
+      
+      {/* LEFT SIDE BUTTONS */}
       {userProfile?.role === 'admin' && (
         <Link href="/admin" className="absolute top-4 left-4 text-[8px] font-bold text-rose-500 uppercase tracking-widest bg-white shadow-md px-3 py-1.5 rounded-full border border-rose-100 z-50">
           ⚙️ Admin Desk
         </Link>
       )}
 
-      <button onClick={handleLogout} className="absolute top-4 right-4 text-[8px] font-bold text-slate-400 uppercase tracking-widest bg-white/80 px-3 py-1.5 rounded-full border border-slate-100 z-50">
-        Logout
-      </button>
+      {/* RIGHT SIDE BUTTONS */}
+      <div className="absolute top-4 right-4 flex gap-2 z-50">
+        <Link 
+          href="/help" 
+          className="text-[10px] font-bold text-slate-300 bg-white/50 w-7 h-7 flex items-center justify-center rounded-full border border-slate-100 shadow-sm hover:text-rose-400 transition-colors"
+        >
+          ?
+        </Link>
+        <button onClick={handleLogout} className="text-[8px] font-bold text-slate-400 uppercase tracking-widest bg-white/80 px-3 py-1.5 rounded-full border border-slate-100 shadow-sm">
+          Logout
+        </button>
+      </div>
 
-      <div className="bg-rose-100/40 pt-16 pb-24 px-6 text-center border-b border-rose-200">
+      <div className="bg-rose-100/40 pt-16 pb-24 px-6 text-center border-b border-rose-200 shadow-sm">
         <h1 className="text-4xl font-serif italic text-slate-800 mb-2">The Wedding Elephant</h1>
         <p className="text-slate-400 uppercase tracking-widest text-[9px] font-bold tracking-[0.2em]">Hello, {userProfile?.full_name || 'Team'}</p>
       </div>
 
       <div className="max-w-2xl mx-auto -mt-16 px-4 space-y-4">
+        
+        {/* TRACKERS */}
         <div className="grid grid-cols-3 gap-3">
           <div className="card-wedding flex flex-col items-center justify-center p-3 min-h-[100px] text-center bg-white shadow-md border-rose-50">
             <span className="text-2xl font-bold text-rose-500 font-serif italic leading-none">{diffDays > 0 ? diffDays : 0}</span>
             <span className="text-[8px] uppercase text-slate-400 font-bold mt-2 leading-tight tracking-tighter">Days To Go</span>
           </div>
-          <div className="card-wedding flex flex-col items-center justify-center p-3 min-h-[100px] text-center bg-white shadow-md border-rose-50">
+          <div className="card-wedding flex flex-col items-center justify-center p-3 min-h-[100px] text-center bg-white shadow-md">
             <span className="text-sm font-bold text-slate-700">${spentSoFar}</span>
             <div className="w-full bg-slate-100 h-1 rounded-full mt-2 overflow-hidden border border-slate-50">
                 <div className="bg-rose-300 h-full transition-all duration-1000" style={{ width: `${budgetPercent}%` }}></div>
             </div>
-            <span className="text-[8px] uppercase text-slate-400 font-bold mt-2 leading-tight tracking-tighter">of ${totalBudget}</span>
+            <span className="text-[8px] uppercase text-slate-400 font-bold mt-2 leading-tight tracking-tighter">of ${config?.total_budget}</span>
           </div>
           <div className="card-wedding bg-emerald-50 border-emerald-100 flex flex-col items-center justify-center p-3 min-h-[100px] text-center shadow-md">
             <span className="text-lg font-bold text-emerald-600 leading-none">${totalSaved}</span>
@@ -124,6 +121,19 @@ export default function Home() {
           </div>
         </div>
 
+        {/* TEAM ROSTER CARD (Admin Only) */}
+        {userProfile?.role === 'admin' && (
+          <div className="card-wedding bg-white shadow-sm border-dashed border-rose-200 p-4">
+            <h3 className="text-[9px] font-bold text-rose-400 uppercase tracking-widest mb-2 flex items-center">
+              <span className="mr-2">👥</span> Team Check-in
+            </h3>
+            <p className="text-[10px] text-slate-400 italic leading-relaxed">
+              Once the MOH, Groom, and Parents sign up, their names will appear in your Admin Desk assignment list!
+            </p>
+          </div>
+        )}
+
+        {/* PHASES */}
         <div className="card-wedding bg-white shadow-md">
           <h3 className="text-slate-700 font-bold mb-4 flex items-center text-[9px] uppercase tracking-widest"><span className="mr-2 text-lg">📋</span> Planning Phases</h3>
           <div className="space-y-4">
@@ -131,7 +141,7 @@ export default function Home() {
               const unlocked = isPhaseUnlocked(phase.step_number);
               return (
                 <div key={phase.id} className="flex items-center gap-4">
-                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${!unlocked ? 'bg-slate-200' : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)] animate-pulse'}`}></div>
+                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${!unlocked ? 'bg-slate-200' : 'bg-emerald-400 shadow-sm animate-pulse'}`}></div>
                   <span className={`flex-1 text-sm ${!unlocked ? 'text-slate-300 font-normal italic' : 'text-slate-800 font-semibold'}`}>{phase.name}</span>
                   {!unlocked ? (
                     <span className="text-[8px] bg-slate-50 text-slate-300 px-2 py-0.5 rounded uppercase font-bold">Locked</span>
@@ -145,11 +155,23 @@ export default function Home() {
         </div>
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 h-16 flex items-center justify-around px-6 z-50">
-        <Link href="/" className="text-rose-500 flex flex-col items-center"><span className="text-xl leading-none">🏠</span><span className="text-[9px] font-bold mt-1">Home</span></Link>
-        <Link href="/tasks" className="text-slate-400 flex flex-col items-center"><span className="text-xl leading-none">✅</span><span className="text-[9px] font-bold mt-1">Tasks</span></Link>
-        <Link href="/workshop" className="text-slate-400 flex flex-col items-center"><span className="text-xl leading-none">🎨</span><span className="text-[9px] font-bold mt-1">DIY</span></Link>
-        <Link href="/resources" className="text-slate-400 flex flex-col items-center"><span className="text-xl leading-none">🤝</span><span className="text-[9px] font-bold mt-1">Deals</span></Link>
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 h-16 flex items-center justify-around px-6 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
+        <Link href="/" className="text-rose-500 flex flex-col items-center hover:scale-105 active:scale-90 transition-all">
+          <span className="text-xl leading-none">🏠</span>
+          <span className="text-[9px] font-bold mt-1 tracking-tight underline decoration-2 decoration-rose-200">Home</span>
+        </Link>
+        <Link href="/tasks" className="text-slate-400 flex flex-col items-center hover:scale-105 active:scale-90 transition-all">
+          <span className="text-xl leading-none">✅</span>
+          <span className="text-[9px] font-bold mt-1 tracking-tight">Tasks</span>
+        </Link>
+        <Link href="/workshop" className="text-slate-400 flex flex-col items-center hover:scale-105 active:scale-90 transition-all">
+          <span className="text-xl leading-none">🎨</span>
+          <span className="text-[9px] font-bold mt-1 tracking-tight">DIY</span>
+        </Link>
+        <Link href="/resources" className="text-slate-400 flex flex-col items-center hover:scale-105 active:scale-90 transition-all">
+          <span className="text-xl leading-none">🤝</span>
+          <span className="text-[9px] font-bold mt-1 tracking-tight">Deals</span>
+        </Link>
       </nav>
     </main>
   );
