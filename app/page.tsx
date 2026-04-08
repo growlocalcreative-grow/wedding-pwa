@@ -51,6 +51,22 @@ export default function Home() {
     router.push('/login');
   };
 
+  {/* TEAM ROSTER CARD (Admin Only) */}
+{userProfile?.role === 'admin' && (
+  <div className="card-wedding bg-white shadow-sm border-dashed border-rose-200">
+    <h3 className="text-[9px] font-bold text-rose-400 uppercase tracking-widest mb-3 flex items-center">
+      <span className="mr-2">👥</span> Team Check-in
+    </h3>
+    <div className="flex flex-wrap gap-2">
+      {/* This assumes you've fetched 'profiles' in your checkUserAndFetch function */}
+      {/* For now, just a helpful reminder for the Bride */}
+      <p className="text-[10px] text-slate-400 italic">
+        Once the MOH, Groom, and Parents sign up, their names will appear in your Admin Desk assignment list!
+      </p>
+    </div>
+  </div>
+)}
+
   // --- SAFE LOGIC CALCULATIONS ---
   const isPhaseUnlocked = (phaseStep: number) => {
     if (phaseStep === 1) return true;
