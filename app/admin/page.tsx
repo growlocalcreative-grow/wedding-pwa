@@ -17,8 +17,15 @@ export default function AdminPage() {
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
   const [val1, setVal1] = useState('1'); 
-  const [val2, setVal2] = useState(''); // User ID
+  const [val2, setVal2] = useState(''); 
   const [cost, setCost] = useState('0');
+
+  // THEME COLOR LOGIC
+  const theme = {
+    tasks: { bg: 'bg-rose-50/50', border: 'border-rose-200', text: 'text-rose-600', btn: 'bg-rose-400' },
+    resources: { bg: 'bg-emerald-50/50', border: 'border-emerald-200', text: 'text-emerald-600', btn: 'bg-emerald-500' },
+    diy: { bg: 'bg-purple-50/50', border: 'border-purple-200', text: 'text-purple-600', btn: 'bg-purple-500' }
+  }[activeTab];
 
   useEffect(() => {
     checkAdminAndFetch();
@@ -46,7 +53,6 @@ export default function AdminPage() {
     e.preventDefault();
     let table = activeTab === 'tasks' ? 'tasks' : activeTab === 'resources' ? 'resources' : 'diy_projects';
     
-    // Logic for Bug 5: If a suggested task is now being assigned, move it to 'todo'
     let status = 'todo';
     if (activeTab === 'tasks' && editingId) {
         const current = items.find(i => i.id === editingId);
@@ -84,69 +90,90 @@ export default function AdminPage() {
   if (loading) return <div className="p-10 text-center italic text-rose-300">Loading Desk...</div>;
 
   return (
-    <main className="min-h-screen bg-slate-50 pb-32 font-sans text-slate-800">
-      <header className="bg-white border-b border-rose-100 p-6 sticky top-0 z-20 shadow-sm flex flex-col items-center">
+    <main className={`min-h-screen pb-32 font-sans text-slate-800 transition-colors duration-500 ${theme.bg}`}>
+      
+      {/* HEADER SECTION */}
+      <header className={`bg-white border-b sticky top-0 z-20 shadow-sm flex flex-col items-center p-6 transition-all duration-500 ${theme.border}`}>
         <h1 className="text-xl font-serif italic">Bride&apos;s Desk</h1>
+        
+        {/* TAB SWITCHER */}
         <div className="flex bg-slate-100 rounded-xl p-1 mt-4 w-full max-w-xs">
-          {(['tasks', 'resources', 'diy'] as const).map((tab) => (
-            <button key={tab} onClick={() => {setActiveTab(tab); setEditingId(null);}} className={`flex-1 py-1.5 text-[9px] font-bold uppercase rounded-lg transition-all ${activeTab === tab ? 'bg-white shadow-sm text-rose-500' : 'text-slate-400'}`}>{tab}</button>
-          ))}
+          <button onClick={() => {setActiveTab('tasks'); setEditingId(null);}} className={`flex-1 py-1.5 text-[9px] font-bold uppercase rounded-lg transition-all ${activeTab === 'tasks' ? 'bg-white shadow-sm text-rose-500' : 'text-slate-400'}`}>Tasks</button>
+          <button onClick={() => {setActiveTab('resources'); setEditingId(null);}} className={`flex-1 py-1.5 text-[9px] font-bold uppercase rounded-lg transition-all ${activeTab === 'resources' ? 'bg-white shadow-sm text-emerald-500' : 'text-slate-400'}`}>People</button>
+          <button onClick={() => {setActiveTab('diy'); setEditingId(null);}} className={`flex-1 py-1.5 text-[9px] font-bold uppercase rounded-lg transition-all ${activeTab === 'diy' ? 'bg-white shadow-sm text-purple-500' : 'text-slate-400'}`}>Crafts</button>
         </div>
       </header>
 
       <div className="max-w-2xl mx-auto p-4 space-y-8">
-        <section className="card-wedding border-2 border-rose-100 bg-white p-6 shadow-md">
+        
+        {/* ADD / EDIT FORM (Changes color based on tab) */}
+        <section className={`card-wedding border-2 bg-white p-6 shadow-md transition-all duration-500 ${theme.border}`}>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{editingId ? 'Edit' : 'Add'} {activeTab}</h2>
-            <input type="text" placeholder="Title/Name" className="w-full p-3 rounded-xl border border-slate-200 text-sm outline-none" value={title} onChange={(e) => setTitle(e.target.value)} required />
-            <textarea placeholder="Details..." className="w-full p-3 rounded-xl border border-slate-200 text-sm h-20 outline-none" value={desc} onChange={(e) => setDesc(e.target.value)} />
+            <h2 className={`text-[10px] font-bold uppercase tracking-widest ${theme.text}`}>
+              {editingId ? '✏️ Edit' : '➕ Add'} {activeTab === 'diy' ? 'Craft Project' : activeTab === 'resources' ? 'Contact' : 'Task'}
+            </h2>
+            <input type="text" placeholder="Title/Name" className="w-full p-3 rounded-xl border border-slate-200 text-sm outline-none focus:ring-1 focus:ring-slate-300" value={title} onChange={(e) => setTitle(e.target.value)} required />
+            <textarea placeholder="Details/Directions..." className="w-full p-3 rounded-xl border border-slate-200 text-sm h-20 outline-none" value={desc} onChange={(e) => setDesc(e.target.value)} />
             
             <div className="grid grid-cols-2 gap-3">
-              {/* Fix Bug 7: Phase Selection Always Available for Tasks */}
               {activeTab === 'tasks' && (
                 <select className="w-full p-3 rounded-xl border border-slate-200 text-sm bg-white" value={val1} onChange={(e) => setVal1(e.target.value)}>
                   {[1,2,3,4].map(n => <option key={n} value={n}>Phase {n}</option>)}
                 </select>
               )}
-              {/* Fix Bug 4 & 8: Assign to Real Users (Teams) */}
+              
               {(activeTab === 'tasks' || activeTab === 'diy') && (
                 <select className="w-full p-3 rounded-xl border border-slate-200 text-sm bg-white" value={val2} onChange={(e) => setVal2(e.target.value)}>
-                  <option value="">{activeTab === 'diy' ? 'Select Team Lead' : 'Assign to Everyone'}</option>
+                  <option value="">{activeTab === 'diy' ? 'Assign Team Lead' : 'Everyone can see'}</option>
                   {profiles.map(p => <option key={p.id} value={p.id}>{p.full_name || p.email}</option>)}
                 </select>
               )}
-              <input type="number" placeholder="Cost $" className="w-full p-3 rounded-xl border border-slate-200 text-sm outline-none" value={cost} onChange={(e) => setCost(e.target.value)} />
+              
+              {activeTab === 'resources' && (
+                 <input type="text" placeholder="Category (e.g. Venue)" className="w-full p-3 rounded-xl border border-slate-200 text-sm outline-none" value={val1} onChange={(e) => setVal1(e.target.value)} />
+              )}
+
+              <div className="relative">
+                <span className="absolute left-3 top-3 text-slate-400 text-sm">$</span>
+                <input type="number" placeholder="Cost" className="w-full p-3 pl-7 rounded-xl border border-slate-200 text-sm outline-none" value={cost} onChange={(e) => setCost(e.target.value)} />
+              </div>
             </div>
 
-            <button type="submit" className="w-full bg-rose-400 text-white font-bold py-3 rounded-xl text-[10px] uppercase tracking-widest shadow-sm">{editingId ? 'Update' : 'Create'}</button>
+            <button type="submit" className={`w-full text-white font-bold py-3 rounded-xl text-[10px] uppercase tracking-widest shadow-md transition-colors ${theme.btn}`}>
+              {editingId ? 'Save Changes' : `Confirm ${activeTab}`}
+            </button>
           </form>
         </section>
 
+        {/* LIST SECTION */}
         <section className="space-y-4">
-          <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Manage {activeTab}</h2>
+          <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1 italic">Existing Items</h2>
           {items.map((item) => {
             const assignee = profiles.find(p => p.id === item.assigned_user_id);
             return (
-              <div key={item.id} className="card-wedding py-4 px-5 flex justify-between items-center shadow-sm">
+              <div key={item.id} className="card-wedding py-4 px-5 flex justify-between items-center shadow-sm bg-white/80 backdrop-blur-sm border-l-4 border-l-slate-200">
                 <div className="flex-1 pr-4">
                   <h3 className="text-sm font-bold text-slate-700 leading-tight">{item.title || item.name}</h3>
-                  {/* Fix Bug 8: Show who is assigned */}
-                  <p className="text-[9px] text-rose-400 mt-1 font-bold uppercase tracking-tighter">
-                    {assignee ? `Assigned: ${assignee.full_name || assignee.email}` : 'Assigned: Everyone'}
+                  <p className="text-[9px] text-slate-400 mt-1 font-bold uppercase tracking-tighter">
+                    {assignee ? `Assignee: ${assignee.full_name || assignee.email}` : 'Assignee: Team'}
                   </p>
-                  {item.status === 'pending_review' && <span className="text-[8px] text-sky-500 font-bold uppercase italic mt-1 block">Needs Action</span>}
+                  {item.status === 'pending_review' && <span className="text-[8px] text-sky-500 font-bold uppercase mt-1 block">⚠️ Suggestion</span>}
                 </div>
                 <div className="flex gap-2">
                   {item.status === 'pending_review' && <button onClick={() => approveTask(item.id)} className="bg-emerald-500 text-white px-3 py-1 rounded-lg text-[9px] font-bold">Approve</button>}
-                  <button onClick={() => startEdit(item)} className="p-2 bg-slate-50 rounded-lg text-sm">✏️</button>
+                  <button onClick={() => startEdit(item)} className="p-2 bg-slate-50 rounded-lg text-sm border border-slate-100 shadow-sm active:scale-90 transition-all">✏️</button>
                 </div>
               </div>
             );
           })}
         </section>
       </div>
+
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 h-16 flex items-center justify-around px-6 z-50">
-        <Link href="/" className="text-slate-400 flex flex-col items-center"><span className="text-xl">🏠</span><span className="text-[9px] font-bold">Exit</span></Link>
+        <Link href="/" className="text-slate-400 flex flex-col items-center hover:scale-105 transition-all">
+          <span className="text-xl">🏠</span>
+          <span className="text-[9px] font-bold mt-1 tracking-tight">Exit</span>
+        </Link>
       </nav>
     </main>
   );
