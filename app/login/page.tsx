@@ -35,7 +35,7 @@ export default function LoginPage() {
         
         {/* HEADER WITH ICON */}
         <div className="text-center mb-8 flex flex-col items-center">
-          <h1 className="text-3xl font-serif italic text-slate-800 leading-none">The Elephant</h1>
+          <h1 className="text-3xl font-serif italic text-slate-800 leading-none">The Wedding Elephant</h1>
           
           {/* THE NEW PINK ELEPHANT ICON */}
           <div className="my-4 p-3 bg-rose-50 rounded-full border border-rose-100 shadow-inner">
