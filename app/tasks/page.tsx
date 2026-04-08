@@ -6,26 +6,39 @@ import Link from 'next/link';
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<any[]>([]);
+  const [phases, setPhases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchMyTasks();
+    fetchData();
   }, []);
 
-  async function fetchMyTasks() {
+  async function fetchData() {
     const { data: { user } } = await supabase.auth.getUser();
+    if (user) setUserId(user.id);
 
-    let query = supabase.from('tasks').select('*').order('phase_id', { ascending: true });
+    // Fetch all phases and all tasks
+    const { data: phasesData } = await supabase.from('phases').select('*').order('step_number');
+    const { data: tasksData } = await supabase.from('tasks').select('*').order('id', { ascending: true });
 
-    // IF logged in, only show tasks assigned to ME or to EVERYONE (NULL)
-    if (user) {
-      query = query.or(`assigned_user_id.eq.${user.id},assigned_user_id.is.null`);
-    }
-
-    const { data } = await query;
-    if (data) setTasks(data);
+    setPhases(phasesData || []);
+    setTasks(tasksData || []);
     setLoading(false);
   }
+
+  // --- THE GATING LOGIC ---
+  const isPhaseUnlocked = (phaseStep: number) => {
+    if (phaseStep === 1) return true; // Phase 1 is always open
+    
+    // Check if ALL tasks in the PREVIOUS phase are 'completed'
+    const prevPhaseTasks = tasks.filter(t => t.phase_id === phaseStep - 1);
+    
+    // If there are no tasks in the previous phase, it counts as "done"
+    if (prevPhaseTasks.length === 0) return true; 
+
+    return prevPhaseTasks.every(t => t.status === 'completed');
+  };
 
   async function completeTask(taskId: number) {
     const { error } = await supabase.from('tasks').update({ status: 'pending_review' }).eq('id', taskId);
@@ -34,75 +47,106 @@ export default function TasksPage() {
     }
   }
 
-  if (loading) return <div className="p-10 text-center italic text-rose-300 font-serif">Finding your tasks...</div>;
+  if (loading) return <div className="p-10 text-center italic text-rose-300 font-serif">Checking the Elephant...</div>;
 
   return (
     <main className="min-h-screen bg-slate-50 pb-24 font-sans text-slate-800">
       <div className="bg-white border-b border-rose-100 p-6 sticky top-0 z-10 shadow-sm text-center">
-        <h1 className="text-2xl font-serif italic text-slate-800">Your Tasks</h1>
-        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1 text-center italic leading-none">Bite-Sized Planning</p>
+        <h1 className="text-2xl font-serif italic text-slate-800 leading-none">Your Tasks</h1>
+        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-2 italic">Follow the Phases</p>
       </div>
 
-      <div className="max-w-2xl mx-auto p-4 space-y-8">
-        {[1, 2, 3, 4].map((phaseNum) => (
-          <section key={phaseNum} className="space-y-4">
-            <h2 className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em] ml-2">Phase {phaseNum}</h2>
-            <div className="space-y-3">
-              {tasks.filter(t => t.phase_id === phaseNum).map((task) => (
-                <div key={task.id} className={`card-wedding transition-all border-l-4 ${task.status === 'completed' ? 'border-l-emerald-400' : 'border-l-rose-200'}`}>
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex-1">
-                      <h3 className={`font-bold text-sm ${task.status === 'completed' ? 'text-slate-300 line-through' : 'text-slate-800'}`}>{task.title}</h3>
-                      <p className="text-[11px] text-slate-500 mt-1 italic leading-relaxed">"{task.directions}"</p>
+      <div className="max-w-2xl mx-auto p-4 space-y-10">
+        {phases.map((phase) => {
+          const unlocked = isPhaseUnlocked(phase.step_number);
+          const phaseTasks = tasks.filter(t => t.phase_id === phase.step_number && (t.assigned_user_id === userId || t.assigned_user_id === null));
+
+          return (
+            <section key={phase.id} className={`transition-all duration-500 ${!unlocked ? 'opacity-40 grayscale' : ''}`}>
+              <div className="flex items-center justify-between mb-4 px-2">
+                <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Phase {phase.step_number}: {phase.name}</h2>
+                {!unlocked && <span className="text-[10px] font-bold text-rose-300 italic">🔒 Locked</span>}
+              </div>
+
+              {unlocked ? (
+                <div className="space-y-3">
+                  {phaseTasks.map((task) => (
+                    <div key={task.id} className={`card-wedding relative overflow-hidden ${task.is_bro_deal ? 'bro-deal-card' : ''} border-l-4 ${task.status === 'completed' ? 'border-l-emerald-400' : 'border-l-rose-200'}`}>
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1">
+                          <h3 className={`font-bold text-sm ${task.status === 'completed' ? 'text-slate-300 line-through' : 'text-slate-800'}`}>{task.title}</h3>
+                          <p className="text-[11px] text-slate-500 mt-1 italic leading-relaxed">"{task.directions}"</p>
+                          
+                          {/* ADMIN COMMENTS SECTION */}
+                          {task.admin_comments && (
+                            <div className="mt-3 p-2 bg-rose-50/50 rounded-lg border border-rose-100 animate-in slide-in-from-top-1 duration-500">
+                              <p className="text-[10px] font-bold text-rose-400 uppercase tracking-tight">Note from Bride:</p>
+                              <p className="text-[11px] text-rose-700 italic mt-0.5">{task.admin_comments}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {task.status === 'todo' && (
+                          <button onClick={() => completeTask(task.id)} className="bg-rose-100 text-rose-600 font-bold py-2 px-3 rounded-xl text-[10px] shadow-sm active:scale-95 transition-all">DONE</button>
+                        )}
+                        {task.status === 'pending_review' && (
+                          <span className="bg-sky-50 text-sky-500 text-[9px] font-bold px-3 py-2 rounded-xl italic animate-pulse">REVIEWING</span>
+                        )}
+                        {task.status === 'completed' && (
+                          <span className="text-emerald-500 font-bold text-[10px] bg-emerald-50 px-2 py-1 rounded">✅ APPROVED</span>
+                        )}
+                      </div>
                     </div>
-                    {task.status === 'todo' && <button onClick={() => completeTask(task.id)} className="bg-rose-100 text-rose-600 font-bold py-2 px-3 rounded-xl text-[10px]">DONE</button>}
-                    {task.status === 'pending_review' && <span className="bg-sky-100 text-sky-600 text-[9px] font-bold px-3 py-2 rounded-xl italic animate-pulse">UNDER REVIEW</span>}
-                    {task.status === 'completed' && <span className="text-emerald-500 font-bold text-[10px]">✅ APPROVED</span>}
-                  </div>
+                  ))}
+                  {phaseTasks.length === 0 && <p className="text-[10px] text-slate-300 italic text-center py-2">No tasks assigned to you in this phase.</p>}
                 </div>
-              ))}
-            </div>
-          </section>
-        ))}
+              ) : (
+                <div className="card-wedding bg-slate-100/50 border-dashed border-slate-200 py-8 text-center">
+                  <p className="text-xs text-slate-400 font-medium italic">Complete all Phase {phase.step_number - 1} tasks to unlock this section. 🐘</p>
+                </div>
+              )}
+            </section>
+          );
+        })}
+
         {/* Suggest a Task Section */}
         <section className="mt-12 mb-8 p-6 bg-white rounded-2xl border-2 border-dashed border-slate-200">
           <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest text-center mb-4 italic">Suggest a Task for the Bride</h3>
           <div className="flex gap-2">
-            <input 
-              type="text" 
-              id="suggestInput"
-              placeholder="e.g. Rent a generator" 
-              className="flex-1 p-3 rounded-xl border border-slate-200 text-sm outline-none" 
-            />
+            <input type="text" id="suggestInput" placeholder="e.g. Rent a generator" className="flex-1 p-3 rounded-xl border border-slate-200 text-sm outline-none focus:ring-1 focus:ring-rose-200" />
             <button 
               onClick={async () => {
                 const input = document.getElementById('suggestInput') as HTMLInputElement;
                 if (!input.value) return;
-                const { data: { user } } = await supabase.auth.getUser();
                 await supabase.from('tasks').insert([{
-                  title: input.value,
-                  status: 'pending_review', // It goes straight to the Bride's desk!
-                  directions: 'Suggested by ' + (user?.email || 'Team Member'),
-                  phase_id: 1,
-                  assigned_user_id: user?.id
+                  title: input.value, status: 'pending_review', directions: 'User Suggestion', phase_id: 1, assigned_user_id: userId
                 }]);
-                alert("Suggestion sent to the Bride's Desk! 🐘");
+                alert("Suggestion sent! 🐘");
                 input.value = '';
               }}
-              className="bg-rose-400 text-white font-bold px-4 rounded-xl text-[10px] uppercase shadow-sm"
-            >
-              Send
-            </button>
+              className="bg-rose-400 text-white font-bold px-4 rounded-xl text-[10px] uppercase shadow-sm active:scale-90"
+            >Send</button>
           </div>
         </section>
       </div>
 
-      {/* FIXED NAVIGATION BAR: 4 ICONS */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 h-16 flex items-center justify-around px-6 z-50">
-        <Link href="/" className="text-slate-400 flex flex-col items-center"><span className="text-xl">🏠</span><span className="text-[9px] font-bold mt-1">Home</span></Link>
-        <Link href="/tasks" className="text-rose-500 flex flex-col items-center"><span className="text-xl">✅</span><span className="text-[9px] font-bold mt-1">Tasks</span></Link>
-        <Link href="/workshop" className="text-slate-400 flex flex-col items-center"><span className="text-xl">🎨</span><span className="text-[9px] font-bold mt-1">DIY</span></Link>
-        <Link href="/resources" className="text-slate-400 flex flex-col items-center"><span className="text-xl">🤝</span><span className="text-[9px] font-bold mt-1">Deals</span></Link>
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 h-16 flex items-center justify-around px-6 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
+        <Link href="/" className="text-slate-400 flex flex-col items-center hover:scale-105 active:scale-90 transition-all">
+          <span className="text-xl">🏠</span>
+          <span className="text-[9px] font-bold mt-1">Home</span>
+        </Link>
+        <Link href="/tasks" className="text-rose-500 flex flex-col items-center hover:scale-105 active:scale-90 transition-all">
+          <span className="text-xl">✅</span>
+          <span className="text-[9px] font-bold mt-1 underline decoration-2 underline-offset-4 decoration-rose-200">Tasks</span>
+        </Link>
+        <Link href="/workshop" className="text-slate-400 flex flex-col items-center hover:scale-105 active:scale-90 transition-all">
+          <span className="text-xl">🎨</span>
+          <span className="text-[9px] font-bold mt-1">DIY</span>
+        </Link>
+        <Link href="/resources" className="text-slate-400 flex flex-col items-center hover:scale-105 active:scale-90 transition-all">
+          <span className="text-xl">🤝</span>
+          <span className="text-[9px] font-bold mt-1">Deals</span>
+        </Link>
       </nav>
     </main>
   );
